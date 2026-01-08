@@ -139,7 +139,8 @@ label {
 
 input[type="number"],
 input[type="text"],
-textarea {
+textarea,
+select {
   width: 100%;
   padding: 12px 15px;
   font-size: 16px;
@@ -152,10 +153,15 @@ textarea {
 
 input[type="number"]:focus,
 input[type="text"]:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+select {
+  background: white;
 }
 
 input[type="file"] {
@@ -385,6 +391,19 @@ input[type="file"] {
   border-radius: 4px;
   font-size: 13px;
   color: #856404;
+}
+
+.info-note-compact {
+  margin-top: 10px;
+  padding: 10px 12px;
+}
+
+.cif-note {
+  margin-top: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.65);
 }
 
 .info-note-freight {

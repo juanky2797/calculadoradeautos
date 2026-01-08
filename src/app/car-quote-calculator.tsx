@@ -3,8 +3,8 @@
 import { jsPDF } from "jspdf";
 import { useEffect, useMemo, useState } from "react";
 
-import { mimeToJsPdfFormat, normalizeImageUrl } from "@/lib/image";
-import { calculateQuote, formatCurrency } from "@/lib/quote";
+import { mimeToJsPdfFormat, normalizeImageUrl, type JsPdfImageFormat } from "@/lib/image";
+import { calculateQuote, formatCurrency, type VehicleType } from "@/lib/quote";
 
 const defaultConfig = {
   mainTitle: "Calculadora de Importación de Autos",
@@ -22,6 +22,16 @@ const pdfPalette = {
   secondary: "#0c0a0a",
 } as const;
 
+const sellerFooter = {
+  name: "Wellview Universal S.A.",
+  ruc: "R. U. C. 155665924-2-2018 DV 37",
+  address: "Centro Comercial Costa Sur, Local 28, Juan Diaz, Ciudad de Panama, Panamá.",
+  contact: "Teléfono: 385.2428, E-mail:ventas@shanghai-autospty.com",
+} as const;
+
+type Rgb = { r: number; g: number; b: number };
+type PdfImage = { dataUrl: string; format: JsPdfImageFormat; width: number; height: number };
+
 function hexToRgb(hex: string) {
   const normalized = hex.replace("#", "").trim();
   if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return { r: 0, g: 0, b: 0 };
@@ -30,6 +40,91 @@ function hexToRgb(hex: string) {
     g: Number.parseInt(normalized.slice(2, 4), 16),
     b: Number.parseInt(normalized.slice(4, 6), 16),
   };
+}
+
+function applyPdfHeader(
+  doc: jsPDF,
+  opts: {
+    primary: Rgb;
+    secondary: Rgb;
+    companyName: string;
+    companyWebsite: string;
+    currentDate: string;
+    logo: PdfImage | null;
+  },
+) {
+  const pageCount = doc.getNumberOfPages();
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  const leftMargin = 20;
+  const rightMargin = 20;
+  const centerX = pageWidth / 2;
+
+  for (let page = 1; page <= pageCount; page += 1) {
+    doc.setPage(page);
+
+    if (opts.logo) {
+      const maxWidth = 40;
+      const maxHeight = 16;
+      const scale = Math.min(maxWidth / opts.logo.width, maxHeight / opts.logo.height, 1);
+      const width = opts.logo.width * scale;
+      const height = opts.logo.height * scale;
+      doc.addImage(opts.logo.dataUrl, opts.logo.format, leftMargin, 10, width, height);
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(opts.primary.r, opts.primary.g, opts.primary.b);
+    doc.text(opts.companyName, centerX, 18, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(opts.secondary.r, opts.secondary.g, opts.secondary.b);
+    doc.text(opts.companyWebsite, centerX, 23, { align: "center" });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(opts.primary.r, opts.primary.g, opts.primary.b);
+    doc.text("COTIZACIÓN DE IMPORTACIÓN", centerX, 29, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(opts.secondary.r, opts.secondary.g, opts.secondary.b);
+    doc.text(`Fecha: ${opts.currentDate}`, pageWidth - rightMargin, 18, { align: "right" });
+
+    doc.setDrawColor(opts.secondary.r, opts.secondary.g, opts.secondary.b);
+    doc.setLineWidth(0.25);
+    doc.line(leftMargin, 34, pageWidth - rightMargin, 34);
+  }
+}
+
+function applyPdfFooter(doc: jsPDF, color: Rgb) {
+  const pageCount = doc.getNumberOfPages();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  const leftMargin = 20;
+  const rightMargin = 20;
+  const footerStartY = pageHeight - 20;
+  const lineHeight = 3.8;
+  const centerX = pageWidth / 2;
+
+  for (let page = 1; page <= pageCount; page += 1) {
+    doc.setPage(page);
+
+    doc.setDrawColor(color.r, color.g, color.b);
+    doc.setLineWidth(0.2);
+    doc.line(leftMargin, footerStartY - 4.5, pageWidth - rightMargin, footerStartY - 4.5);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(color.r, color.g, color.b);
+
+    doc.text(sellerFooter.name, centerX, footerStartY, { align: "center" });
+    doc.text(sellerFooter.ruc, centerX, footerStartY + lineHeight, { align: "center" });
+    doc.text(sellerFooter.address, centerX, footerStartY + lineHeight * 2, { align: "center" });
+    doc.text(sellerFooter.contact, centerX, footerStartY + lineHeight * 3, { align: "center" });
+  }
 }
 
 function buildWebsiteHref(website: string) {
@@ -42,6 +137,7 @@ export default function CarQuoteCalculator() {
   const [logoLoadError, setLogoLoadError] = useState(false);
 
   const [carModel, setCarModel] = useState("");
+  const [vehicleType, setVehicleType] = useState<VehicleType>("electric");
   const [carImage, setCarImage] = useState("");
   const [carImageFile, setCarImageFile] = useState<File | null>(null);
   const [carImageFilePreviewUrl, setCarImageFilePreviewUrl] = useState<string | null>(null);
@@ -59,6 +155,7 @@ export default function CarQuoteCalculator() {
   const [portableCharger, setPortableCharger] = useState(false);
   const [residentialCharger, setResidentialCharger] = useState(false);
   const [extraChargers, setExtraChargers] = useState(0);
+  const [additionalAccessoriesCost, setAdditionalAccessoriesCost] = useState("0");
 
   useEffect(() => {
     if (!carImageFile) {
@@ -77,6 +174,7 @@ export default function CarQuoteCalculator() {
   const carCostNumber = Number.parseFloat(carCost) || 0;
   const carQuantityNumber = Number.parseInt(carQuantity, 10) || 1;
   const freightNumber = Number.parseFloat(freight) || 1300;
+  const additionalAccessoriesCostNumber = Number.parseFloat(additionalAccessoriesCost) || 0;
 
   const totals = useMemo(() => {
     return calculateQuote({
@@ -86,6 +184,8 @@ export default function CarQuoteCalculator() {
       portableCharger,
       residentialCharger,
       extraChargers,
+      additionalAccessoriesCost: additionalAccessoriesCostNumber,
+      vehicleType,
     });
   }, [
     carCostNumber,
@@ -94,9 +194,14 @@ export default function CarQuoteCalculator() {
     portableCharger,
     residentialCharger,
     extraChargers,
+    additionalAccessoriesCostNumber,
+    vehicleType,
   ]);
 
   const quantityLabel = carQuantityNumber > 1 ? `(${carQuantityNumber} unidades)` : "";
+  const vehicleTypeLabel =
+    vehicleType === "electric" ? "Eléctrico" : vehicleType === "hybrid" ? "Híbrido" : "Combustión";
+  const tariffRateLabel = `${Math.round(totals.tariffRate * 100)}%`;
   const canDownloadPdf = carCostNumber > 0;
 
   const normalizedCarImageUrl = useMemo(() => normalizeImageUrl(carImage), [carImage]);
@@ -153,52 +258,50 @@ export default function CarQuoteCalculator() {
     setIsGeneratingPdf(true);
     setImageErrorMessage(null);
 
-    try {
-      const doc = new jsPDF();
+	    try {
+	      const doc = new jsPDF();
 
-      const primary = hexToRgb(pdfPalette.primary);
-      const secondary = hexToRgb(pdfPalette.secondary);
+	      const primary = hexToRgb(pdfPalette.primary);
+	      const secondary = hexToRgb(pdfPalette.secondary);
+	      const contentStartY = 45;
 
-    const currentDate = new Date().toLocaleDateString("es-PA", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+	      const currentDate = new Date().toLocaleDateString("es-PA", {
+	        year: "numeric",
+	        month: "long",
+	        day: "numeric",
+	      });
 
-    const companyName = defaultConfig.companyName;
-    const companyPhone = defaultConfig.companyPhone;
-    const companyEmail = defaultConfig.companyEmail;
-    const companyAddress = defaultConfig.companyAddress;
-    const companyWebsite = defaultConfig.companyWebsite;
+	      const companyName = defaultConfig.companyName;
+	      const companyWebsite = defaultConfig.companyWebsite;
 
-    doc.setFillColor(primary.r, primary.g, primary.b);
-    doc.rect(0, 0, 210, 50, "F");
+	      let logoForPdf: PdfImage | null = null;
+	      try {
+	        const logoUrl = defaultConfig.logoUrl;
+	        const logoFetchUrl =
+	          logoUrl.startsWith("http://") || logoUrl.startsWith("https://")
+	            ? `/api/image-proxy?url=${encodeURIComponent(logoUrl)}`
+	            : logoUrl;
 
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.setFont("helvetica", "bold");
-    doc.text(companyName, 105, 20, { align: "center" });
+	        const response = await fetch(logoFetchUrl);
+	        if (response.ok) {
+	          const blob = await response.blob();
+	          const format = mimeToJsPdfFormat(blob.type);
+	          if (format) {
+	            const dataUrl = await blobToDataUrl(blob);
+	            const { width, height } = await getImageDimensions(dataUrl);
+	            logoForPdf = { dataUrl, format, width, height };
+	          }
+	        }
+	      } catch {
+	        // Ignore logo failures; the PDF still renders without it.
+	      }
 
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(companyAddress, 105, 28, { align: "center" });
-    doc.text(`Tel: ${companyPhone} | Email: ${companyEmail}`, 105, 34, { align: "center" });
-    doc.text(`Web: ${companyWebsite}`, 105, 40, { align: "center" });
+	      let yPos = contentStartY;
 
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("COTIZACIÓN DE IMPORTACIÓN", 105, 65, { align: "center" });
-
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Fecha: ${currentDate}`, 105, 73, { align: "center" });
-
-    let yPos = 90;
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(primary.r, primary.g, primary.b);
-    doc.text("INFORMACIÓN DEL VEHÍCULO", 20, yPos);
+	    doc.setFontSize(14);
+	    doc.setFont("helvetica", "bold");
+	    doc.setTextColor(primary.r, primary.g, primary.b);
+	    doc.text("INFORMACIÓN DEL VEHÍCULO", 20, yPos);
 
     yPos += 10;
     doc.setFontSize(11);
@@ -207,6 +310,7 @@ export default function CarQuoteCalculator() {
 
     const vehicleInfo: Array<[string, string]> = [
       ["Modelo:", carModel || "No especificado"],
+      ["Tipo de Vehículo:", vehicleTypeLabel],
       ["Descripción:", carDescription || "N/A"],
       ["Cantidad:", carQuantityNumber.toString()],
       ["Precio Unitario (FOB):", formatCurrency(carCostNumber)],
@@ -224,31 +328,38 @@ export default function CarQuoteCalculator() {
       yPos += 6 * Math.max(1, textLines.length);
     });
 
-    try {
-      const image = await resolveImageForPdf();
-      if (image) {
-        const maxWidth = 170;
-        const maxHeight = 70;
-        const scale = Math.min(maxWidth / image.width, maxHeight / image.height, 1);
-        const imgWidth = image.width * scale;
-        const imgHeight = image.height * scale;
+	    let insertedCarImage = false;
+	    try {
+	      const image = await resolveImageForPdf();
+	      if (image) {
+	        insertedCarImage = true;
+	        const maxWidth = 170;
+	        const maxHeight = 70;
+	        const scale = Math.min(maxWidth / image.width, maxHeight / image.height, 1);
+	        const imgWidth = image.width * scale;
+	        const imgHeight = image.height * scale;
 
-        if (yPos + imgHeight + 10 > 270) {
-          doc.addPage();
-          yPos = 30;
-        } else {
-          yPos += 6;
-        }
+	        const topSpacing = 8;
+	        const bottomSpacing = 12;
 
-        const x = 105 - imgWidth / 2;
-        doc.addImage(image.dataUrl, image.format, x, yPos, imgWidth, imgHeight);
-        yPos += imgHeight;
-      }
-    } catch {
-      setImageErrorMessage("No se pudo incluir la imagen en el PDF. Se generó la cotización sin imagen.");
-    }
+		        if (yPos + topSpacing + imgHeight + bottomSpacing > 270) {
+		          doc.addPage();
+		          yPos = contentStartY;
+		        } else {
+		          yPos += topSpacing;
+		        }
 
-    yPos += 5;
+	        const x = 105 - imgWidth / 2;
+	        doc.addImage(image.dataUrl, image.format, x, yPos, imgWidth, imgHeight);
+	        yPos += imgHeight + bottomSpacing;
+	      }
+	    } catch {
+	      setImageErrorMessage("No se pudo incluir la imagen en el PDF. Se generó la cotización sin imagen.");
+	    }
+
+	    if (!insertedCarImage) {
+	      yPos += 5;
+	    }
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(primary.r, primary.g, primary.b);
@@ -262,10 +373,8 @@ export default function CarQuoteCalculator() {
     const costs: Array<[string, string]> = [
       ["Costo Total del Auto (FOB)", formatCurrency(totals.totalCarCost)],
       ["Comisión (5% sobre FOB)", formatCurrency(totals.commission)],
+      ["Gestión de compras (5% sobre FOB)", formatCurrency(totals.purchaseManagement)],
       ["Flete Marítimo (incluye seguro)", formatCurrency(totals.freight)],
-      ["Inspección Técnica", "$250.00"],
-      ["Gastos de Llegada", "$850.00"],
-      ["Registro y Placa", "$260.00"],
     ];
 
     if (totals.portableCharger > 0) {
@@ -277,12 +386,36 @@ export default function CarQuoteCalculator() {
     if (totals.extraChargersCost > 0) {
       costs.push([`Conjuntos Adicionales (${extraChargers})`, formatCurrency(totals.extraChargersCost)]);
     }
+    if (totals.additionalAccessoriesCost > 0) {
+      costs.push(["Accesorios adicionales", formatCurrency(totals.additionalAccessoriesCost)]);
+    }
+
+    costs.push([`Arancel (${tariffRateLabel} sobre CIF)`, formatCurrency(totals.tariff)]);
+    costs.push(["Inspección Técnica", "$250.00"]);
+    costs.push(["Gastos de Llegada", "$850.00"]);
+    costs.push(["Registro y Placa", "$260.00"]);
 
     costs.forEach(([label, value]) => {
+      if (yPos + 7 > 270) {
+        doc.addPage();
+        yPos = contentStartY;
+      }
       doc.text(label, 25, yPos);
       doc.text(value, 180, yPos, { align: "right" });
       yPos += 7;
     });
+
+    if (yPos + 6 > 270) {
+      doc.addPage();
+      yPos = contentStartY;
+    }
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(secondary.r, secondary.g, secondary.b);
+    doc.text(`Base CIF (FOB + accesorios + flete): ${formatCurrency(totals.cif)}`, 25, yPos);
+    yPos += 6;
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
 
     yPos += 3;
     doc.setDrawColor(secondary.r, secondary.g, secondary.b);
@@ -299,15 +432,16 @@ export default function CarQuoteCalculator() {
     doc.text("ITBMS (7%)", 25, yPos);
     doc.text(formatCurrency(totals.tax), 180, yPos, { align: "right" });
 
-    yPos += 5;
-    doc.setFillColor(primary.r, primary.g, primary.b);
-    doc.rect(20, yPos, 170, 15, "F");
-    yPos += 10;
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("TOTAL A PAGAR", 25, yPos);
-    doc.text(formatCurrency(totals.total), 180, yPos, { align: "right" });
+	    yPos += 5;
+	    doc.setDrawColor(primary.r, primary.g, primary.b);
+	    doc.setLineWidth(0.4);
+	    doc.rect(20, yPos, 170, 15, "S");
+	    yPos += 10;
+	    doc.setTextColor(primary.r, primary.g, primary.b);
+	    doc.setFontSize(16);
+	    doc.setFont("helvetica", "bold");
+	    doc.text("TOTAL A PAGAR", 25, yPos);
+	    doc.text(formatCurrency(totals.total), 180, yPos, { align: "right" });
 
     yPos += 18;
     doc.setTextColor(0, 0, 0);
@@ -339,21 +473,21 @@ export default function CarQuoteCalculator() {
       doc.setTextColor(0, 0, 0);
       const commentLines = doc.splitTextToSize(sellerComments, 170);
       commentLines.forEach((line: string) => {
-        if (yPos > 270) {
-          doc.addPage();
-          yPos = 30;
-        }
+	        if (yPos > 270) {
+	          doc.addPage();
+	          yPos = contentStartY;
+	        }
         doc.text(line, 25, yPos);
         yPos += 5;
       });
     }
 
-    if (yPos > 240) {
-      doc.addPage();
-      yPos = 30;
-    } else {
-      yPos += 12;
-    }
+	    if (yPos > 240) {
+	      doc.addPage();
+	      yPos = contentStartY;
+	    } else {
+	      yPos += 12;
+	    }
 
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
@@ -374,137 +508,160 @@ export default function CarQuoteCalculator() {
       yPos += 6;
       doc.text("✓ Cargador Residencial con Instalación", 25, yPos);
     }
-    if (extraChargers > 0) {
-      yPos += 6;
-      doc.text(
-        `✓ ${extraChargers} Conjunto${extraChargers > 1 ? "s" : ""} Adicional${extraChargers > 1 ? "es" : ""} de Cargadores`,
-        25,
-        yPos,
-      );
-    }
+	    if (extraChargers > 0) {
+	      yPos += 6;
+	      doc.text(
+	        `✓ ${extraChargers} Conjunto${extraChargers > 1 ? "s" : ""} Adicional${extraChargers > 1 ? "es" : ""} de Cargadores`,
+	        25,
+	        yPos,
+	      );
+	    }
 
-    doc.addPage();
-    yPos = 30;
+	    yPos += 14;
 
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(primary.r, primary.g, primary.b);
-    doc.text("TÉRMINOS Y CONDICIONES", 20, yPos);
+	    const ensureSpace = (height: number) => {
+	      if (yPos + height > 270) {
+	        doc.addPage();
+	        yPos = contentStartY;
+	      }
+	    };
 
-    yPos += 8;
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text("1. PRECIO:", 20, yPos);
+	    ensureSpace(24);
+	    doc.setFontSize(12);
+	    doc.setFont("helvetica", "bold");
+	    doc.setTextColor(primary.r, primary.g, primary.b);
+	    doc.text("TÉRMINOS Y CONDICIONES", 20, yPos);
 
-    yPos += 5;
-    doc.setFont("helvetica", "normal");
-    const terms1 = [
+	    yPos += 8;
+	    doc.setFontSize(9);
+	    doc.setFont("helvetica", "bold");
+	    doc.setTextColor(0, 0, 0);
+	    ensureSpace(8);
+	    doc.text("1. PRECIO:", 20, yPos);
+
+	    yPos += 5;
+	    doc.setFont("helvetica", "normal");
+	    const terms1 = [
       "• La comisión del 5% se calcula sobre el precio FOB del vehículo",
+      "• La gestión de compras del 5% se calcula sobre el precio FOB del vehículo",
+      "• Arancel sobre CIF (FOB + accesorios + flete) según tipo de vehículo",
+      "  eléctrico 0% • híbrido 10% • combustión 25%",
       "• Validez de precios: 15 días desde la fecha de emisión",
       "• El flete marítimo varía según tamaño y disponibilidad de embarque",
       "• Incluye: costo del producto, documentos de exportación, embalaje,",
       "  despacho de aduana y gastos de salida en origen",
       "• El seguro cubre solo el embalaje, no pérdida o daño de mercancía",
     ];
-    terms1.forEach((line) => {
-      doc.text(line, 23, yPos);
-      yPos += 4.5;
-    });
+	    terms1.forEach((line) => {
+	      ensureSpace(6);
+	      doc.text(line, 23, yPos);
+	      yPos += 4.5;
+	    });
 
-    yPos += 3;
-    doc.setFont("helvetica", "bold");
-    doc.text("2. CONDICIONES DE PAGO:", 20, yPos);
-
-    yPos += 5;
-    doc.setFont("helvetica", "normal");
-    const terms2 = [
+	    yPos += 3;
+	    doc.setFont("helvetica", "bold");
+	    ensureSpace(8);
+	    doc.text("2. CONDICIONES DE PAGO:", 20, yPos);
+	    
+	    yPos += 5;
+	    doc.setFont("helvetica", "normal");
+	    const terms2 = [
       "• 30% para reservar y confirmar la orden",
       "• 70% antes del embarque",
       "• Control de calidad según estándar AQL para cada envío",
       "• Si el comprador no paga dentro de 30 días del informe de inspección",
       "  aprobado, se perderá el depósito y se podrá revender la mercancía",
     ];
-    terms2.forEach((line) => {
-      doc.text(line, 23, yPos);
-      yPos += 4.5;
-    });
+	    terms2.forEach((line) => {
+	      ensureSpace(6);
+	      doc.text(line, 23, yPos);
+	      yPos += 4.5;
+	    });
 
-    yPos += 3;
-    doc.setFont("helvetica", "bold");
-    doc.text("3. RESPONSABILIDADES:", 20, yPos);
-
-    yPos += 5;
-    doc.setFont("helvetica", "normal");
-    const terms3 = [
+	    yPos += 3;
+	    doc.setFont("helvetica", "bold");
+	    ensureSpace(8);
+	    doc.text("3. RESPONSABILIDADES:", 20, yPos);
+	    
+	    yPos += 5;
+	    doc.setFont("helvetica", "normal");
+	    const terms3 = [
       "• El proveedor es responsable del despacho de aduana en origen",
       "• El proveedor NO es responsable de daños o retrasos durante",
       "  el transporte internacional",
       "• El cliente es completamente responsable del despacho de aduana",
       "  en destino y sus costos asociados",
     ];
-    terms3.forEach((line) => {
-      doc.text(line, 23, yPos);
-      yPos += 4.5;
-    });
+	    terms3.forEach((line) => {
+	      ensureSpace(6);
+	      doc.text(line, 23, yPos);
+	      yPos += 4.5;
+	    });
 
-    yPos += 3;
-    doc.setFont("helvetica", "bold");
-    doc.text("4. GARANTÍA Y RECLAMOS:", 20, yPos);
-
-    yPos += 5;
-    doc.setFont("helvetica", "normal");
-    const terms4 = [
+	    yPos += 3;
+	    doc.setFont("helvetica", "bold");
+	    ensureSpace(8);
+	    doc.text("4. GARANTÍA Y RECLAMOS:", 20, yPos);
+	    
+	    yPos += 5;
+	    doc.setFont("helvetica", "normal");
+	    const terms4 = [
       "• Garantía: 2 años o 2,000 km (lo que ocurra primero)",
       "• Cualquier reclamo debe hacerse directamente al proveedor dentro",
       "  de 48 horas después de recibir el producto",
       "• No hay garantías adicionales más allá de las contenidas en esta",
       "  factura proforma",
     ];
-    terms4.forEach((line) => {
-      doc.text(line, 23, yPos);
-      yPos += 4.5;
-    });
+	    terms4.forEach((line) => {
+	      ensureSpace(6);
+	      doc.text(line, 23, yPos);
+	      yPos += 4.5;
+	    });
 
-    yPos += 3;
-    doc.setFont("helvetica", "bold");
-    doc.text("5. TRANSFERENCIAS INTERNACIONALES:", 20, yPos);
-
-    yPos += 5;
-    doc.setFont("helvetica", "normal");
-    const terms5 = [
+	    yPos += 3;
+	    doc.setFont("helvetica", "bold");
+	    ensureSpace(8);
+	    doc.text("5. TRANSFERENCIAS INTERNACIONALES:", 20, yPos);
+	    
+	    yPos += 5;
+	    doc.setFont("helvetica", "normal");
+	    const terms5 = [
       "• El comprador debe enviar comprobante bancario y número Swift",
       "• Si el banco beneficiario lo requiere, el comprador debe probar",
       "  el origen de los fondos transferidos",
     ];
-    terms5.forEach((line) => {
-      doc.text(line, 23, yPos);
-      yPos += 4.5;
-    });
+	    terms5.forEach((line) => {
+	      ensureSpace(6);
+	      doc.text(line, 23, yPos);
+	      yPos += 4.5;
+	    });
 
-    yPos += 3;
-    doc.setFont("helvetica", "bold");
-    doc.text("6. LEY APLICABLE:", 20, yPos);
+	    yPos += 3;
+	    doc.setFont("helvetica", "bold");
+	    ensureSpace(8);
+	    doc.text("6. LEY APLICABLE:", 20, yPos);
+	    
+	    yPos += 5;
+	    doc.setFont("helvetica", "normal");
+	    ensureSpace(6);
+	    doc.text("• Este acuerdo se rige por las leyes de Panamá", 23, yPos);
+	    yPos += 4.5;
+		    ensureSpace(6);
+		    doc.text("• Jurisdicción: tribunales competentes de Panamá", 23, yPos);
 
-    yPos += 5;
-    doc.setFont("helvetica", "normal");
-    doc.text("• Este acuerdo se rige por las leyes de Panamá", 23, yPos);
-    yPos += 4.5;
-    doc.text("• Jurisdicción: tribunales competentes de Panamá", 23, yPos);
+		    applyPdfHeader(doc, {
+		      primary,
+		      secondary,
+		      companyName,
+		      companyWebsite,
+		      currentDate,
+		      logo: logoForPdf,
+		    });
+		    applyPdfFooter(doc, secondary);
 
-    yPos = 270;
-    doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Cotización válida por 15 días. Para más información, contáctenos.", 105, yPos, {
-      align: "center",
-    });
-    yPos += 5;
-    doc.setFont("helvetica", "bold");
-    doc.text(`${companyName} | Tel: ${companyPhone} | ${companyEmail}`, 105, yPos, { align: "center" });
-
-    doc.save(`Cotizacion_${companyName.replace(/\\s+/g, "_")}_${Date.now()}.pdf`);
-    } finally {
-      setIsGeneratingPdf(false);
+		    doc.save(`Cotizacion_${companyName.replace(/\\s+/g, "_")}_${Date.now()}.pdf`);
+		    } finally {
+		      setIsGeneratingPdf(false);
     }
   };
 
@@ -561,6 +718,22 @@ export default function CarQuoteCalculator() {
                 value={carModel}
                 onChange={(e) => setCarModel(e.target.value)}
               />
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="vehicle-type">Tipo de Vehículo (Arancel)</label>
+              <select
+                id="vehicle-type"
+                value={vehicleType}
+                onChange={(e) => setVehicleType(e.target.value as VehicleType)}
+              >
+                <option value="electric">Eléctrico (0%)</option>
+                <option value="hybrid">Híbrido (10%)</option>
+                <option value="combustion">Combustión (25%)</option>
+              </select>
+              <div className="info-note info-note-compact">
+                ℹ️ El arancel se calcula sobre CIF = FOB + accesorios + flete.
+              </div>
             </div>
 
             <div className="input-group">
@@ -782,6 +955,19 @@ export default function CarQuoteCalculator() {
                 +
               </button>
             </div>
+
+            <div className="input-group">
+              <label htmlFor="additional-accessories-cost">Accesorios adicionales (USD)</label>
+              <input
+                type="number"
+                id="additional-accessories-cost"
+                min={0}
+                step={50}
+                placeholder="Ejemplo: 500"
+                value={additionalAccessoriesCost}
+                onChange={(e) => setAdditionalAccessoriesCost(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="summary-section">
@@ -796,6 +982,10 @@ export default function CarQuoteCalculator() {
             <div className="cost-row">
               <span className="cost-label">Comisión (5% sobre FOB)</span>{" "}
               <span className="cost-value">{formatCurrency(totals.commission)}</span>
+            </div>
+            <div className="cost-row">
+              <span className="cost-label">Gestión de compras (5% sobre FOB)</span>{" "}
+              <span className="cost-value">{formatCurrency(totals.purchaseManagement)}</span>
             </div>
             <div className="cost-row freight-cost-row">
               <span className="cost-label">Flete Marítimo (incluye seguro)</span>{" "}
@@ -829,6 +1019,21 @@ export default function CarQuoteCalculator() {
                 <span className="cost-value">{formatCurrency(totals.extraChargersCost)}</span>
               </div>
             ) : null}
+
+            {totals.additionalAccessoriesCost > 0 ? (
+              <div className="cost-row">
+                <span className="cost-label">Accesorios adicionales</span>{" "}
+                <span className="cost-value">{formatCurrency(totals.additionalAccessoriesCost)}</span>
+              </div>
+            ) : null}
+
+            <div className="cost-row">
+              <span className="cost-label">Arancel ({tariffRateLabel} sobre CIF)</span>{" "}
+              <span className="cost-value">{formatCurrency(totals.tariff)}</span>
+            </div>
+            <div className="cif-note">
+              Base CIF (FOB + accesorios + flete): <strong>{formatCurrency(totals.cif)}</strong>
+            </div>
 
             <div className="cost-row subtotal-row">
               <span className="cost-label">Subtotal</span> <span className="cost-value">{formatCurrency(totals.subtotal)}</span>
