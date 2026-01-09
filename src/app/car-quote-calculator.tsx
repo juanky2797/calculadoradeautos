@@ -26,7 +26,7 @@ const sellerFooter = {
   name: "Wellview Universal S.A.",
   ruc: "R. U. C. 155665924-2-2018 DV 37",
   address: "Centro Comercial Costa Sur, Local 28, Juan Diaz, Ciudad de Panama, Panamá.",
-  contact: "Teléfono: 385.2428, E-mail:ventas@shanghai-autospty.com",
+  contact: "Teléfono: 385.2428",
 } as const;
 
 type Rgb = { r: number; g: number; b: number };
@@ -83,9 +83,9 @@ function applyPdfHeader(
     doc.text(opts.companyWebsite, centerX, 23, { align: "center" });
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.setTextColor(opts.primary.r, opts.primary.g, opts.primary.b);
-    doc.text("COTIZACIÓN DE IMPORTACIÓN", centerX, 29, { align: "center" });
+    doc.text("COTIZACIÓN DE IMPORTACIÓN", centerX, 31, { align: "center" });
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
@@ -94,7 +94,7 @@ function applyPdfHeader(
 
     doc.setDrawColor(opts.secondary.r, opts.secondary.g, opts.secondary.b);
     doc.setLineWidth(0.25);
-    doc.line(leftMargin, 34, pageWidth - rightMargin, 34);
+    doc.line(leftMargin, 37, pageWidth - rightMargin, 37);
   }
 }
 
@@ -382,16 +382,16 @@ export default function CarQuoteCalculator() {
 
     const costs: Array<[string, string]> = [
       ["Costo Total del Auto (FOB)", formatCurrency(totals.totalCarCost)],
-      ["Comisión (5% sobre FOB)", formatCurrency(totals.commission)],
+      ["Gastos de Gestión", formatCurrency(totals.commission)],
       ["Gestión de compras (5% sobre FOB)", formatCurrency(totals.purchaseManagement)],
       ["Flete Marítimo (incluye seguro)", formatCurrency(totals.freight)],
     ];
 
     if (totals.portableCharger > 0) {
-      costs.push(["Cargador Portátil", "$30.00"]);
+      costs.push(["Cargador Portátil", formatCurrency(30)]);
     }
     if (totals.residentialCharger > 0) {
-      costs.push(["Cargador Residencial + Instalación", "$300.00"]);
+      costs.push(["Cargador Residencial + Instalación", formatCurrency(300)]);
     }
     if (totals.extraChargersCost > 0) {
       costs.push([`Conjuntos Adicionales (${extraChargers})`, formatCurrency(totals.extraChargersCost)]);
@@ -401,9 +401,9 @@ export default function CarQuoteCalculator() {
     }
 
     costs.push([`Arancel (${tariffRateLabel} sobre CIF)`, formatCurrency(totals.tariff)]);
-    costs.push(["Inspección Técnica", "$250.00"]);
-    costs.push(["Gastos de Llegada", "$850.00"]);
-    costs.push(["Registro y Placa", "$260.00"]);
+    costs.push(["Inspección Técnica", formatCurrency(250)]);
+    costs.push(["Gastos de Llegada", formatCurrency(850)]);
+    costs.push(["Registro y Placa", formatCurrency(260)]);
 
     costs.forEach(([label, value]) => {
       ensureSpace(7);
@@ -500,7 +500,7 @@ export default function CarQuoteCalculator() {
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(0, 0, 0);
-    doc.text("✓ Garantía de 2 años o 2,000 km (lo que ocurra primero)", 25, yPos);
+    doc.text("✓ Garantía de 2 años o 20,000 km (lo que ocurra primero)", 25, yPos);
 
     if (totals.portableCharger > 0) {
       yPos += 6;
@@ -537,7 +537,7 @@ export default function CarQuoteCalculator() {
 	    yPos += 5;
 	    doc.setFont("helvetica", "normal");
 	    const terms1 = [
-      "• La comisión del 5% se calcula sobre el precio FOB del vehículo",
+      "• Los gastos de gestión del 5% se calculan sobre el precio FOB del vehículo",
       "• La gestión de compras del 5% se calcula sobre el precio FOB del vehículo",
       "• Arancel sobre CIF (FOB + accesorios + flete) según tipo de vehículo",
       "  eléctrico 0% • híbrido 10% • combustión 25%",
@@ -601,7 +601,7 @@ export default function CarQuoteCalculator() {
 	    yPos += 5;
 	    doc.setFont("helvetica", "normal");
 	    const terms4 = [
-      "• Garantía: 2 años o 2,000 km (lo que ocurra primero)",
+      "• Garantía: 2 años o 20,000 km (lo que ocurra primero)",
       "• Cualquier reclamo debe hacerse directamente al proveedor dentro",
       "  de 48 horas después de recibir el producto",
       "• No hay garantías adicionales más allá de las contenidas en esta",
@@ -681,8 +681,7 @@ export default function CarQuoteCalculator() {
               <div className="company-contact">
                 📍 <span>{defaultConfig.companyAddress}</span>
                 <br />
-                📞 <span>{defaultConfig.companyPhone}</span> | ✉️{" "}
-                <a href={`mailto:${defaultConfig.companyEmail}`}>{defaultConfig.companyEmail}</a>
+                📞 <span>{defaultConfig.companyPhone}</span>
                 <br />
                 🌐{" "}
                 <a
@@ -975,7 +974,7 @@ export default function CarQuoteCalculator() {
               <span className="cost-value">{formatCurrency(totals.totalCarCost)}</span>
             </div>
             <div className="cost-row">
-              <span className="cost-label">Comisión (5% sobre FOB)</span>{" "}
+              <span className="cost-label">Gastos de Gestión</span>{" "}
               <span className="cost-value">{formatCurrency(totals.commission)}</span>
             </div>
             <div className="cost-row">
@@ -987,24 +986,29 @@ export default function CarQuoteCalculator() {
               <span className="cost-value">{formatCurrency(totals.freight)}</span>
             </div>
             <div className="cost-row">
-              <span className="cost-label">Inspección Técnica en Origen</span> <span className="cost-value">$250.00</span>
+              <span className="cost-label">Inspección Técnica en Origen</span>{" "}
+              <span className="cost-value">{formatCurrency(250)}</span>
             </div>
             <div className="cost-row">
-              <span className="cost-label">Gastos de Llegada</span> <span className="cost-value">$850.00</span>
+              <span className="cost-label">Gastos de Llegada</span>{" "}
+              <span className="cost-value">{formatCurrency(850)}</span>
             </div>
             <div className="cost-row">
-              <span className="cost-label">Registro y Placa</span> <span className="cost-value">$260.00</span>
+              <span className="cost-label">Registro y Placa</span>{" "}
+              <span className="cost-value">{formatCurrency(260)}</span>
             </div>
 
             {totals.portableCharger > 0 ? (
               <div className="cost-row">
-                <span className="cost-label">Cargador Portátil</span> <span className="cost-value">$30.00</span>
+                <span className="cost-label">Cargador Portátil</span>{" "}
+                <span className="cost-value">{formatCurrency(30)}</span>
               </div>
             ) : null}
 
             {totals.residentialCharger > 0 ? (
               <div className="cost-row">
-                <span className="cost-label">Cargador Residencial + Instalación</span> <span className="cost-value">$300.00</span>
+                <span className="cost-label">Cargador Residencial + Instalación</span>{" "}
+                <span className="cost-value">{formatCurrency(300)}</span>
               </div>
             ) : null}
 
@@ -1057,7 +1061,7 @@ export default function CarQuoteCalculator() {
             </button>
 
             <div className="info-note">
-              ℹ️ <strong>Garantía:</strong> 2 años o 2,000 km (lo que ocurra primero)
+              ℹ️ <strong>Garantía:</strong> 2 años o 20,000 km (lo que ocurra primero)
               <br />
               <strong>Validez:</strong> 15 días • <strong>Incluye:</strong> Documentos de exportación, embalaje, despacho de aduana en origen
             </div>
