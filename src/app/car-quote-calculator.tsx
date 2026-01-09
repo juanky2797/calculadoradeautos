@@ -76,15 +76,10 @@ function applyPdfHeader(
     doc.setTextColor(opts.primary.r, opts.primary.g, opts.primary.b);
     doc.text(opts.companyName, centerX, 18, { align: "center" });
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(opts.secondary.r, opts.secondary.g, opts.secondary.b);
-    doc.text(opts.companyWebsite, centerX, 23, { align: "center" });
-
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
+    doc.setFontSize(17);
     doc.setTextColor(opts.primary.r, opts.primary.g, opts.primary.b);
-    doc.text("COTIZACIÓN DE IMPORTACIÓN", centerX, 31, { align: "center" });
+    doc.text("COTIZACIÓN DE IMPORTACIÓN", centerX, 27, { align: "center" });
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
@@ -93,7 +88,7 @@ function applyPdfHeader(
 
     doc.setDrawColor(opts.secondary.r, opts.secondary.g, opts.secondary.b);
     doc.setLineWidth(0.25);
-    doc.line(leftMargin, 37, pageWidth - rightMargin, 37);
+    doc.line(leftMargin, 33, pageWidth - rightMargin, 33);
   }
 }
 
