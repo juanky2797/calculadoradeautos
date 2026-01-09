@@ -11,7 +11,6 @@ const defaultConfig = {
   subtitle: "Cotización completa de vehículos eléctricos a Panamá",
   companyName: "Shanghai Autos Pty",
   companyPhone: "6937-0170",
-  companyEmail: "ventas@shanghai-autospty.com",
   companyAddress: "Centro Comercial Costa Sur - Local 28, Panamá",
   companyWebsite: "shanghai-autospty.com",
   logoUrl: "/logo.png",
