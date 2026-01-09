@@ -264,6 +264,9 @@ export default function CarQuoteCalculator() {
 	      const primary = hexToRgb(pdfPalette.primary);
 	      const secondary = hexToRgb(pdfPalette.secondary);
 	      const contentStartY = 45;
+	      const pageHeight = doc.internal.pageSize.getHeight();
+	      const footerReserve = 34;
+	      const maxContentY = pageHeight - footerReserve;
 
 	      const currentDate = new Date().toLocaleDateString("es-PA", {
 	        year: "numeric",
@@ -297,6 +300,13 @@ export default function CarQuoteCalculator() {
 	      }
 
 	      let yPos = contentStartY;
+
+	      const ensureSpace = (height: number) => {
+	        if (yPos + height > maxContentY) {
+	          doc.addPage();
+	          yPos = contentStartY;
+	        }
+	      };
 
 	    doc.setFontSize(14);
 	    doc.setFont("helvetica", "bold");
@@ -342,7 +352,7 @@ export default function CarQuoteCalculator() {
 	        const topSpacing = 8;
 	        const bottomSpacing = 12;
 
-		        if (yPos + topSpacing + imgHeight + bottomSpacing > 270) {
+		        if (yPos + topSpacing + imgHeight + bottomSpacing > maxContentY) {
 		          doc.addPage();
 		          yPos = contentStartY;
 		        } else {
@@ -396,19 +406,13 @@ export default function CarQuoteCalculator() {
     costs.push(["Registro y Placa", "$260.00"]);
 
     costs.forEach(([label, value]) => {
-      if (yPos + 7 > 270) {
-        doc.addPage();
-        yPos = contentStartY;
-      }
+      ensureSpace(7);
       doc.text(label, 25, yPos);
       doc.text(value, 180, yPos, { align: "right" });
       yPos += 7;
     });
 
-    if (yPos + 6 > 270) {
-      doc.addPage();
-      yPos = contentStartY;
-    }
+    ensureSpace(6);
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(secondary.r, secondary.g, secondary.b);
@@ -417,6 +421,7 @@ export default function CarQuoteCalculator() {
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
 
+    ensureSpace(45);
     yPos += 3;
     doc.setDrawColor(secondary.r, secondary.g, secondary.b);
     doc.line(20, yPos, 190, yPos);
@@ -460,29 +465,26 @@ export default function CarQuoteCalculator() {
     doc.setFont("helvetica", "normal");
     doc.text(`70% antes del Embarque: ${formatCurrency(totals.balance70)}`, 25, yPos);
 
-    if (sellerComments) {
-      yPos += 12;
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
+	    if (sellerComments) {
+	      yPos += 12;
+	      doc.setFontSize(12);
+	      doc.setFont("helvetica", "bold");
       doc.setTextColor(primary.r, primary.g, primary.b);
       doc.text("COMENTARIOS DEL VENDEDOR", 20, yPos);
 
       yPos += 8;
       doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      const commentLines = doc.splitTextToSize(sellerComments, 170);
-      commentLines.forEach((line: string) => {
-	        if (yPos > 270) {
-	          doc.addPage();
-	          yPos = contentStartY;
-	        }
-        doc.text(line, 25, yPos);
-        yPos += 5;
-      });
-    }
+	      doc.setFont("helvetica", "normal");
+	      doc.setTextColor(0, 0, 0);
+	      const commentLines = doc.splitTextToSize(sellerComments, 170);
+	      commentLines.forEach((line: string) => {
+	        ensureSpace(5);
+	        doc.text(line, 25, yPos);
+	        yPos += 5;
+	      });
+	    }
 
-	    if (yPos > 240) {
+	    if (yPos > maxContentY - 30) {
 	      doc.addPage();
 	      yPos = contentStartY;
 	    } else {
@@ -518,13 +520,6 @@ export default function CarQuoteCalculator() {
 	    }
 
 	    yPos += 14;
-
-	    const ensureSpace = (height: number) => {
-	      if (yPos + height > 270) {
-	        doc.addPage();
-	        yPos = contentStartY;
-	      }
-	    };
 
 	    ensureSpace(24);
 	    doc.setFontSize(12);
