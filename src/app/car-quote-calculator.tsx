@@ -494,20 +494,20 @@ export default function CarQuoteCalculator() {
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(0, 0, 0);
-    doc.text("✓ Garantía de 2 años o 20,000 km (lo que ocurra primero)", 25, yPos);
+    doc.text("• Garantía de 2 años o 20,000 km (lo que ocurra primero)", 25, yPos);
 
     if (totals.portableCharger > 0) {
       yPos += 6;
-      doc.text("✓ Cargador Portátil", 25, yPos);
+      doc.text("• Cargador Portátil", 25, yPos);
     }
     if (totals.residentialCharger > 0) {
       yPos += 6;
-      doc.text("✓ Cargador Residencial con Instalación", 25, yPos);
+      doc.text("• Cargador Residencial con Instalación", 25, yPos);
     }
 	    if (extraChargers > 0) {
 	      yPos += 6;
 	      doc.text(
-	        `✓ ${extraChargers} Conjunto${extraChargers > 1 ? "s" : ""} Adicional${extraChargers > 1 ? "es" : ""} de Cargadores`,
+	        `• ${extraChargers} Conjunto${extraChargers > 1 ? "s" : ""} Adicional${extraChargers > 1 ? "es" : ""} de Cargadores`,
 	        25,
 	        yPos,
 	      );
