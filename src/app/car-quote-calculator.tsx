@@ -494,7 +494,7 @@ export default function CarQuoteCalculator() {
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(0, 0, 0);
-    doc.text("✓ Garantía de 2 años o 20,000 km (lo que ocurra primero)", 25, yPos);
+    doc.text("✓ Garantía de 2 años o 20.000 km (lo que ocurra primero)", 25, yPos);
 
     if (totals.portableCharger > 0) {
       yPos += 6;
@@ -531,8 +531,7 @@ export default function CarQuoteCalculator() {
 	    yPos += 5;
 	    doc.setFont("helvetica", "normal");
 	    const terms1 = [
-      "• Los gastos de gestión del 5% se calculan sobre el precio FOB del vehículo",
-      "• La gestión de compras del 5% se calcula sobre el precio FOB del vehículo",
+      "• Gastos de gestión y gestión de compras: 5% cada uno sobre el precio FOB del vehículo",
       "• Arancel sobre CIF (FOB + accesorios + flete) según tipo de vehículo",
       "  eléctrico 0% • híbrido 10% • combustión 25%",
       "• Validez de precios: 15 días desde la fecha de emisión",
@@ -595,7 +594,7 @@ export default function CarQuoteCalculator() {
 	    yPos += 5;
 	    doc.setFont("helvetica", "normal");
 	    const terms4 = [
-      "• Garantía: 2 años o 20,000 km (lo que ocurra primero)",
+      "• Garantía: 2 años o 20.000 km (lo que ocurra primero)",
       "• Cualquier reclamo debe hacerse directamente al proveedor dentro",
       "  de 48 horas después de recibir el producto",
       "• No hay garantías adicionales más allá de las contenidas en esta",
@@ -1055,7 +1054,7 @@ export default function CarQuoteCalculator() {
             </button>
 
             <div className="info-note">
-              ℹ️ <strong>Garantía:</strong> 2 años o 20,000 km (lo que ocurra primero)
+              ℹ️ <strong>Garantía:</strong> 2 años o 20.000 km (lo que ocurra primero)
               <br />
               <strong>Validez:</strong> 15 días • <strong>Incluye:</strong> Documentos de exportación, embalaje, despacho de aduana en origen
             </div>
