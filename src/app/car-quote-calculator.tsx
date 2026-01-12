@@ -9,7 +9,7 @@ import { calculateQuote, formatCurrency, type VehicleType } from "@/lib/quote";
 const defaultConfig = {
   mainTitle: "Calculadora de Importación de Autos",
   subtitle: "Cotización completa de vehículos eléctricos a Panamá",
-  companyName: "Shanghai Autos Pty",
+  companyName: "Shanghai Autos PTY",
   companyPhone: "6937-0170",
   companyAddress: "Centro Comercial Costa Sur - Local 28, Panamá",
   companyWebsite: "shanghai-autospty.com",
@@ -129,6 +129,11 @@ function buildWebsiteHref(website: string) {
 
 export default function CarQuoteCalculator() {
   const [logoLoadError, setLogoLoadError] = useState(false);
+
+  const [customerName, setCustomerName] = useState("");
+  const [customerId, setCustomerId] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
 
   const [carModel, setCarModel] = useState("");
   const [vehicleType, setVehicleType] = useState<VehicleType>("electric");
@@ -302,9 +307,73 @@ export default function CarQuoteCalculator() {
 	        }
 	      };
 
+	      const wrapText = (text: string, maxWidth: number) => {
+	        const rawLines = String(text || "").split(/\r?\n/);
+	        const wrapped: string[] = [];
+	        rawLines.forEach((rawLine) => {
+	          const line = rawLine.trimEnd();
+	          if (!line) {
+	            wrapped.push("");
+	            return;
+	          }
+	          wrapped.push(...doc.splitTextToSize(line, maxWidth));
+	        });
+	        return wrapped.length > 0 ? wrapped : ["N/A"];
+	      };
+
+	      const renderInfoRows = (rows: Array<[string, string]>) => {
+	        const labelX = 25;
+	        const valueX = 70;
+	        const valueWidth = 140;
+	        const lineHeight = 6;
+
+	        rows.forEach(([label, value]) => {
+	          const lines = wrapText(value, valueWidth);
+	          doc.setFont("helvetica", "bold");
+	          ensureSpace(lineHeight);
+	          doc.text(label, labelX, yPos);
+	          doc.setFont("helvetica", "normal");
+
+	          const firstLine = lines[0] ?? "";
+	          if (firstLine) {
+	            doc.text(firstLine, valueX, yPos);
+	          }
+	          yPos += lineHeight;
+
+	          lines.slice(1).forEach((line) => {
+	            ensureSpace(lineHeight);
+	            if (line) {
+	              doc.text(line, valueX, yPos);
+	            }
+	            yPos += lineHeight;
+	          });
+	        });
+	      };
+
+	      doc.setFontSize(14);
+	      doc.setFont("helvetica", "bold");
+	      doc.setTextColor(primary.r, primary.g, primary.b);
+	      doc.text("INFORMACIÓN DEL CLIENTE", 20, yPos);
+
+	      yPos += 10;
+	      doc.setFontSize(11);
+	      doc.setFont("helvetica", "normal");
+	      doc.setTextColor(0, 0, 0);
+
+	      const customerInfo: Array<[string, string]> = [
+	        ["Nombre:", customerName || "No especificado"],
+	        ["Cédula:", customerId || "No especificado"],
+	        ["Correo:", customerEmail || "No especificado"],
+	        ["Teléfono:", customerPhone || "No especificado"],
+	      ];
+
+	      renderInfoRows(customerInfo);
+	      yPos += 8;
+
 	    doc.setFontSize(14);
 	    doc.setFont("helvetica", "bold");
 	    doc.setTextColor(primary.r, primary.g, primary.b);
+	    ensureSpace(10);
 	    doc.text("INFORMACIÓN DEL VEHÍCULO", 20, yPos);
 
     yPos += 10;
@@ -323,14 +392,7 @@ export default function CarQuoteCalculator() {
       ["Tiempo de Entrega:", deliveryTime || "No especificado"],
     ];
 
-    vehicleInfo.forEach(([label, value]) => {
-      doc.setFont("helvetica", "bold");
-      doc.text(label, 25, yPos);
-      doc.setFont("helvetica", "normal");
-      const textLines = doc.splitTextToSize(value, 140);
-      doc.text(textLines, 70, yPos);
-      yPos += 6 * Math.max(1, textLines.length);
-    });
+    renderInfoRows(vehicleInfo);
 
 	    let insertedCarImage = false;
 	    try {
@@ -377,7 +439,6 @@ export default function CarQuoteCalculator() {
     const costs: Array<[string, string]> = [
       ["Costo Total del Auto (FOB)", formatCurrency(totals.totalCarCost)],
       ["Gastos de Gestión", formatCurrency(totals.commission)],
-      ["Gestión de compras (5% sobre FOB)", formatCurrency(totals.purchaseManagement)],
       ["Flete Marítimo (incluye seguro)", formatCurrency(totals.freight)],
     ];
 
@@ -531,7 +592,7 @@ export default function CarQuoteCalculator() {
 	    yPos += 5;
 	    doc.setFont("helvetica", "normal");
 	    const terms1 = [
-      "• Gastos de gestión y gestión de compras: 5% cada uno sobre el precio FOB del vehículo",
+      "• Gastos de gestión: 5% sobre el precio FOB del vehículo",
       "• Arancel sobre CIF (FOB + accesorios + flete) según tipo de vehículo",
       "  eléctrico 0% • híbrido 10% • combustión 25%",
       "• Validez de precios: 15 días desde la fecha de emisión",
@@ -573,13 +634,11 @@ export default function CarQuoteCalculator() {
 	    
 	    yPos += 5;
 	    doc.setFont("helvetica", "normal");
-	    const terms3 = [
-      "• El proveedor es responsable del despacho de aduana en origen",
-      "• El proveedor NO es responsable de daños o retrasos durante",
-      "  el transporte internacional",
-      "• El cliente es completamente responsable del despacho de aduana",
-      "  en destino y sus costos asociados",
-    ];
+		    const terms3 = [
+	      "• El proveedor es responsable del despacho de aduana en origen",
+	      "• El proveedor NO es responsable de daños o retrasos durante",
+	      "  el transporte internacional",
+	    ];
 	    terms3.forEach((line) => {
 	      ensureSpace(6);
 	      doc.text(line, 23, yPos);
@@ -693,6 +752,54 @@ export default function CarQuoteCalculator() {
         </header>
 
         <main className="calculator-body">
+          <div className="input-section">
+            <h2 className="section-title">👤 Datos del Cliente</h2>
+
+            <div className="input-group">
+              <label htmlFor="customer-name">Nombre</label>
+              <input
+                type="text"
+                id="customer-name"
+                placeholder="Nombre y apellido"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+              />
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="customer-id">Cédula</label>
+              <input
+                type="text"
+                id="customer-id"
+                placeholder="Ejemplo: 8-123-456"
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+              />
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="customer-email">Correo</label>
+              <input
+                type="email"
+                id="customer-email"
+                placeholder="correo@ejemplo.com"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="customer-phone">Teléfono</label>
+              <input
+                type="tel"
+                id="customer-phone"
+                placeholder="Ejemplo: 6000-0000"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+              />
+            </div>
+          </div>
+
           <div className="input-section">
             <h2 className="section-title">🚗 Datos del Vehículo</h2>
 
@@ -969,10 +1076,6 @@ export default function CarQuoteCalculator() {
             <div className="cost-row">
               <span className="cost-label">Gastos de Gestión</span>{" "}
               <span className="cost-value">{formatCurrency(totals.commission)}</span>
-            </div>
-            <div className="cost-row">
-              <span className="cost-label">Gestión de compras (5% sobre FOB)</span>{" "}
-              <span className="cost-value">{formatCurrency(totals.purchaseManagement)}</span>
             </div>
             <div className="cost-row freight-cost-row">
               <span className="cost-label">Flete Marítimo (incluye seguro)</span>{" "}

@@ -14,7 +14,6 @@ export type VehicleType = "electric" | "hybrid" | "combustion";
 export type QuoteTotals = {
   totalCarCost: number;
   commission: number;
-  purchaseManagement: number;
   freight: number;
   portableCharger: number;
   residentialCharger: number;
@@ -48,7 +47,6 @@ export function formatCurrency(amount: number) {
 export function calculateQuote(inputs: QuoteInputs): QuoteTotals {
   const totalCarCost = roundToCents(inputs.carCost * inputs.carQuantity);
   const commission = roundToCents(totalCarCost * 0.05);
-  const purchaseManagement = roundToCents(totalCarCost * 0.05);
 
   const portableCharger = inputs.portableCharger ? 30 : 0;
   const residentialCharger = inputs.residentialCharger ? 300 : 0;
@@ -63,7 +61,7 @@ export function calculateQuote(inputs: QuoteInputs): QuoteTotals {
   const tariff = roundToCents(cif * tariffRate);
 
   const subtotal = roundToCents(
-    totalCarCost + commission + purchaseManagement + inputs.freight + accessoriesCost + tariff + 250 + 850 + 260,
+    totalCarCost + commission + inputs.freight + accessoriesCost + tariff + 250 + 850 + 260,
   );
   const tax = roundToCents(subtotal * 0.07);
   const total = roundToCents(subtotal + tax);
@@ -73,7 +71,6 @@ export function calculateQuote(inputs: QuoteInputs): QuoteTotals {
   return {
     totalCarCost,
     commission,
-    purchaseManagement,
     freight: inputs.freight,
     portableCharger,
     residentialCharger,
