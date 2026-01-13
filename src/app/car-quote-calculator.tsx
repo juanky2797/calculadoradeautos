@@ -118,6 +118,8 @@ function applyPdfFooter(doc: jsPDF, color: Rgb) {
     doc.text(sellerFooter.ruc, centerX, footerStartY + lineHeight, { align: "center" });
     doc.text(sellerFooter.address, centerX, footerStartY + lineHeight * 2, { align: "center" });
     doc.text(sellerFooter.contact, centerX, footerStartY + lineHeight * 3, { align: "center" });
+
+    doc.text(`Página ${page} de ${pageCount}`, pageWidth - rightMargin, pageHeight - 6, { align: "right" });
   }
 }
 
@@ -476,11 +478,11 @@ export default function CarQuoteCalculator() {
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
 
-    ensureSpace(45);
-    yPos += 3;
-    doc.setDrawColor(secondary.r, secondary.g, secondary.b);
-    doc.line(20, yPos, 190, yPos);
-    yPos += 8;
+	    ensureSpace(45);
+	    yPos += 3;
+	    doc.setDrawColor(secondary.r, secondary.g, secondary.b);
+	    doc.line(20, yPos, 190, yPos);
+	    yPos += 8;
     doc.setFont("helvetica", "bold");
     doc.setTextColor(primary.r, primary.g, primary.b);
     doc.text("Subtotal", 25, yPos);
@@ -500,32 +502,32 @@ export default function CarQuoteCalculator() {
 	    doc.setTextColor(primary.r, primary.g, primary.b);
 	    doc.setFontSize(16);
 	    doc.setFont("helvetica", "bold");
-	    doc.text("TOTAL A PAGAR", 25, yPos);
-	    doc.text(formatCurrency(totals.total), 180, yPos, { align: "right" });
+		    doc.text("TOTAL A PAGAR", 25, yPos);
+		    doc.text(formatCurrency(totals.total), 180, yPos, { align: "right" });
 
-    yPos += 18;
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(primary.r, primary.g, primary.b);
-    doc.text("CONDICIONES DE PAGO", 20, yPos);
+	    yPos += 18;
+	    doc.setTextColor(0, 0, 0);
+	    doc.setFontSize(12);
+	    doc.setFont("helvetica", "bold");
+	    doc.setTextColor(primary.r, primary.g, primary.b);
+	    doc.text("CONDICIONES DE PAGO", 20, yPos);
 
-    yPos += 8;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text(`30% para Reservar: ${formatCurrency(totals.deposit30)}`, 25, yPos);
+	    yPos += 8;
+	    doc.setFontSize(10);
+	    doc.setFont("helvetica", "bold");
+	    doc.setTextColor(0, 0, 0);
+	    doc.text(`30% para Reservar: ${formatCurrency(totals.deposit30)}`, 25, yPos);
 
-    yPos += 6;
-    doc.setFont("helvetica", "normal");
-    doc.text(`70% antes del Embarque: ${formatCurrency(totals.balance70)}`, 25, yPos);
+	    yPos += 6;
+	    doc.setFont("helvetica", "normal");
+	    doc.text(`70% antes del Embarque: ${formatCurrency(totals.balance70)}`, 25, yPos);
 
-	    if (sellerComments) {
-	      yPos += 12;
-	      doc.setFontSize(12);
-	      doc.setFont("helvetica", "bold");
-      doc.setTextColor(primary.r, primary.g, primary.b);
-      doc.text("COMENTARIOS DEL VENDEDOR", 20, yPos);
+		    if (sellerComments) {
+		      yPos += 12;
+		      doc.setFontSize(12);
+		      doc.setFont("helvetica", "bold");
+	      doc.setTextColor(primary.r, primary.g, primary.b);
+	      doc.text("COMENTARIOS DEL VENDEDOR", 20, yPos);
 
       yPos += 8;
       doc.setFontSize(10);
