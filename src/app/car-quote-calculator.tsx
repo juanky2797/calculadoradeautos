@@ -28,6 +28,44 @@ const sellerFooter = {
   contact: "Teléfono: 385.2428",
 } as const;
 
+const defaultTermsText = `1. PRECIO:
+• Gastos de gestión: 5% sobre el precio FOB del vehículo
+• Arancel sobre CIF (FOB + accesorios + flete) según tipo de vehículo
+  eléctrico 0% • híbrido 10% • combustión 25%
+• Validez de precios: 15 días desde la fecha de emisión
+• El flete marítimo varía según tamaño y disponibilidad de embarque
+• Incluye: costo del producto, documentos de exportación, embalaje,
+  despacho de aduana y gastos de salida en origen
+• El seguro cubre solo el embalaje, no pérdida o daño de mercancía
+
+2. CONDICIONES DE PAGO:
+• 30% para reservar y confirmar la orden
+• 70% antes del embarque
+• Control de calidad según estándar AQL para cada envío
+• Si el comprador no paga dentro de 30 días del informe de inspección
+  aprobado, se perderá el depósito y se podrá revender la mercancía
+
+3. RESPONSABILIDADES:
+• El proveedor es responsable del despacho de aduana en origen
+• El proveedor NO es responsable de daños o retrasos durante
+  el transporte internacional
+
+4. GARANTÍA Y RECLAMOS:
+• Garantía: 2 años o 20,000 km (lo que ocurra primero)
+• Cualquier reclamo debe hacerse directamente al proveedor dentro
+  de 48 horas después de recibir el producto
+• No hay garantías adicionales más allá de las contenidas en esta
+  factura proforma
+
+5. TRANSFERENCIAS INTERNACIONALES:
+• El comprador debe enviar comprobante bancario y número Swift
+• Si el banco beneficiario lo requiere, el comprador debe probar
+  el origen de los fondos transferidos
+
+6. LEY APLICABLE:
+• Este acuerdo se rige por las leyes de Panamá
+• Jurisdicción: tribunales competentes de Panamá`;
+
 type Rgb = { r: number; g: number; b: number };
 type PdfImage = { dataUrl: string; format: JsPdfImageFormat; width: number; height: number };
 
@@ -136,6 +174,7 @@ export default function CarQuoteCalculator() {
   const [customerId, setCustomerId] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [termsText, setTermsText] = useState(defaultTermsText);
 
   const [carModel, setCarModel] = useState("");
   const [vehicleType, setVehicleType] = useState<VehicleType>("electric");
@@ -548,10 +587,10 @@ export default function CarQuoteCalculator() {
 	      yPos += 12;
 	    }
 
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(primary.r, primary.g, primary.b);
-    doc.text("INCLUYE:", 20, yPos);
+	    doc.setFontSize(12);
+	    doc.setFont("helvetica", "bold");
+	    doc.setTextColor(primary.r, primary.g, primary.b);
+	    doc.text("INCLUYE:", 20, yPos);
 
     yPos += 8;
     doc.setFontSize(10);
@@ -576,127 +615,54 @@ export default function CarQuoteCalculator() {
 	      );
 	    }
 
-	    yPos += 14;
+		    yPos += 14;
 
-	    ensureSpace(24);
-	    doc.setFontSize(12);
-	    doc.setFont("helvetica", "bold");
-	    doc.setTextColor(primary.r, primary.g, primary.b);
-	    doc.text("TÉRMINOS Y CONDICIONES", 20, yPos);
+		    ensureSpace(24);
+		    doc.setFontSize(12);
+		    doc.setFont("helvetica", "bold");
+		    doc.setTextColor(primary.r, primary.g, primary.b);
+		    doc.text("TÉRMINOS Y CONDICIONES", 20, yPos);
 
-	    yPos += 8;
-	    doc.setFontSize(9);
-	    doc.setFont("helvetica", "bold");
-	    doc.setTextColor(0, 0, 0);
-	    ensureSpace(8);
-	    doc.text("1. PRECIO:", 20, yPos);
+		    yPos += 8;
+		    doc.setFontSize(9);
+		    doc.setFont("helvetica", "normal");
+		    doc.setTextColor(0, 0, 0);
 
-	    yPos += 5;
-	    doc.setFont("helvetica", "normal");
-	    const terms1 = [
-      "• Gastos de gestión: 5% sobre el precio FOB del vehículo",
-      "• Arancel sobre CIF (FOB + accesorios + flete) según tipo de vehículo",
-      "  eléctrico 0% • híbrido 10% • combustión 25%",
-      "• Validez de precios: 15 días desde la fecha de emisión",
-      "• El flete marítimo varía según tamaño y disponibilidad de embarque",
-      "• Incluye: costo del producto, documentos de exportación, embalaje,",
-      "  despacho de aduana y gastos de salida en origen",
-      "• El seguro cubre solo el embalaje, no pérdida o daño de mercancía",
-    ];
-	    terms1.forEach((line) => {
-	      ensureSpace(6);
-	      doc.text(line, 23, yPos);
-	      yPos += 4.5;
-	    });
+		    const termsLines = String(termsText || "").replace(/\r\n/g, "\n").split("\n");
+		    const termsWidth = 167;
+		    const sectionHeadingPattern = /^\s*\d+\.\s.*:\s*$/;
 
-	    yPos += 3;
-	    doc.setFont("helvetica", "bold");
-	    ensureSpace(8);
-	    doc.text("2. CONDICIONES DE PAGO:", 20, yPos);
-	    
-	    yPos += 5;
-	    doc.setFont("helvetica", "normal");
-	    const terms2 = [
-      "• 30% para reservar y confirmar la orden",
-      "• 70% antes del embarque",
-      "• Control de calidad según estándar AQL para cada envío",
-      "• Si el comprador no paga dentro de 30 días del informe de inspección",
-      "  aprobado, se perderá el depósito y se podrá revender la mercancía",
-    ];
-	    terms2.forEach((line) => {
-	      ensureSpace(6);
-	      doc.text(line, 23, yPos);
-	      yPos += 4.5;
-	    });
+		    if (termsLines.every((line) => !line.trim())) {
+		      ensureSpace(6);
+		      doc.text("N/A", 23, yPos);
+		      yPos += 4.5;
+		    } else {
+		      termsLines.forEach((rawLine) => {
+		        const line = rawLine.trimEnd();
+		        const trimmed = line.trim();
 
-	    yPos += 3;
-	    doc.setFont("helvetica", "bold");
-	    ensureSpace(8);
-	    doc.text("3. RESPONSABILIDADES:", 20, yPos);
-	    
-	    yPos += 5;
-	    doc.setFont("helvetica", "normal");
-		    const terms3 = [
-	      "• El proveedor es responsable del despacho de aduana en origen",
-	      "• El proveedor NO es responsable de daños o retrasos durante",
-	      "  el transporte internacional",
-	    ];
-	    terms3.forEach((line) => {
-	      ensureSpace(6);
-	      doc.text(line, 23, yPos);
-	      yPos += 4.5;
-	    });
+		        if (!trimmed) {
+		          yPos += 3;
+		          return;
+		        }
 
-	    yPos += 3;
-	    doc.setFont("helvetica", "bold");
-	    ensureSpace(8);
-	    doc.text("4. GARANTÍA Y RECLAMOS:", 20, yPos);
-	    
-	    yPos += 5;
-	    doc.setFont("helvetica", "normal");
-	    const terms4 = [
-      "• Garantía: 2 años o 20,000 km (lo que ocurra primero)",
-      "• Cualquier reclamo debe hacerse directamente al proveedor dentro",
-      "  de 48 horas después de recibir el producto",
-      "• No hay garantías adicionales más allá de las contenidas en esta",
-      "  factura proforma",
-    ];
-	    terms4.forEach((line) => {
-	      ensureSpace(6);
-	      doc.text(line, 23, yPos);
-	      yPos += 4.5;
-	    });
+		        if (sectionHeadingPattern.test(trimmed)) {
+		          ensureSpace(8);
+		          doc.setFont("helvetica", "bold");
+		          doc.text(trimmed, 20, yPos);
+		          yPos += 5;
+		          doc.setFont("helvetica", "normal");
+		          return;
+		        }
 
-	    yPos += 3;
-	    doc.setFont("helvetica", "bold");
-	    ensureSpace(8);
-	    doc.text("5. TRANSFERENCIAS INTERNACIONALES:", 20, yPos);
-	    
-	    yPos += 5;
-	    doc.setFont("helvetica", "normal");
-	    const terms5 = [
-      "• El comprador debe enviar comprobante bancario y número Swift",
-      "• Si el banco beneficiario lo requiere, el comprador debe probar",
-      "  el origen de los fondos transferidos",
-    ];
-	    terms5.forEach((line) => {
-	      ensureSpace(6);
-	      doc.text(line, 23, yPos);
-	      yPos += 4.5;
-	    });
-
-	    yPos += 3;
-	    doc.setFont("helvetica", "bold");
-	    ensureSpace(8);
-	    doc.text("6. LEY APLICABLE:", 20, yPos);
-	    
-	    yPos += 5;
-	    doc.setFont("helvetica", "normal");
-	    ensureSpace(6);
-	    doc.text("• Este acuerdo se rige por las leyes de Panamá", 23, yPos);
-	    yPos += 4.5;
-		    ensureSpace(6);
-		    doc.text("• Jurisdicción: tribunales competentes de Panamá", 23, yPos);
+		        const wrapped = wrapText(line, termsWidth);
+		        wrapped.forEach((wrappedLine) => {
+		          ensureSpace(6);
+		          doc.text(wrappedLine, 23, yPos);
+		          yPos += 4.5;
+		        });
+		      });
+		    }
 
 		    applyPdfHeader(doc, {
 		      primary,
@@ -1063,6 +1029,26 @@ export default function CarQuoteCalculator() {
                 value={additionalAccessoriesCost}
                 onChange={(e) => setAdditionalAccessoriesCost(e.target.value)}
               />
+            </div>
+          </div>
+
+          <div className="input-section">
+            <h2 className="section-title">📄 Términos y Condiciones (PDF)</h2>
+
+            <div className="input-group">
+              <label htmlFor="terms-text">Editar términos</label>
+              <textarea
+                id="terms-text"
+                rows={16}
+                value={termsText}
+                onChange={(e) => setTermsText(e.target.value)}
+              />
+              <button type="button" className="file-remove-btn" onClick={() => setTermsText(defaultTermsText)}>
+                Restaurar por defecto
+              </button>
+              <div className="info-note info-note-compact">
+                ℹ️ Se imprime tal cual en el PDF. Usa saltos de línea; los títulos tipo “1. …:” salen en negrita.
+              </div>
             </div>
           </div>
 
