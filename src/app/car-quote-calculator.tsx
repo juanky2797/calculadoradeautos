@@ -1143,12 +1143,6 @@ export default function CarQuoteCalculator() {
             >
               📄 Descargar Cotización en PDF
             </button>
-
-            <div className="info-note">
-              ℹ️ <strong>Garantía:</strong> 2 años o 20,000 km (lo que ocurra primero)
-              <br />
-              <strong>Validez:</strong> 15 días • <strong>Incluye:</strong> Documentos de exportación, embalaje, despacho de aduana en origen
-            </div>
           </div>
         </main>
       </div>
