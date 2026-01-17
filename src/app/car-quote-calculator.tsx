@@ -592,26 +592,26 @@ export default function CarQuoteCalculator() {
 	    doc.setTextColor(primary.r, primary.g, primary.b);
 	    doc.text("INCLUYE:", 20, yPos);
 
-    yPos += 8;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 0, 0);
-    doc.text("• Garantía de 2 años o 20,000 km (lo que ocurra primero)", 25, yPos);
+	    yPos += 8;
+	    doc.setFontSize(10);
+	    doc.setFont("helvetica", "normal");
+	    doc.setTextColor(0, 0, 0);
+	    let printedIncludeItem = false;
+	    const printIncludeLine = (text: string) => {
+	      if (printedIncludeItem) yPos += 6;
+	      doc.text(text, 25, yPos);
+	      printedIncludeItem = true;
+	    };
 
-    if (totals.portableCharger > 0) {
-      yPos += 6;
-      doc.text("• Cargador Portátil", 25, yPos);
-    }
-    if (totals.residentialCharger > 0) {
-      yPos += 6;
-      doc.text("• Cargador Residencial con Instalación", 25, yPos);
-    }
+	    if (totals.portableCharger > 0) {
+	      printIncludeLine("• Cargador Portátil");
+	    }
+	    if (totals.residentialCharger > 0) {
+	      printIncludeLine("• Cargador Residencial con Instalación");
+	    }
 	    if (extraChargers > 0) {
-	      yPos += 6;
-	      doc.text(
+	      printIncludeLine(
 	        `• ${extraChargers} Conjunto${extraChargers > 1 ? "s" : ""} Adicional${extraChargers > 1 ? "es" : ""} de Cargadores`,
-	        25,
-	        yPos,
 	      );
 	    }
 
