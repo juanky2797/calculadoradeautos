@@ -590,7 +590,10 @@ export default function CarQuoteCalculator() {
 	    doc.setFontSize(12);
 	    doc.setFont("helvetica", "bold");
 	    doc.setTextColor(primary.r, primary.g, primary.b);
-	    doc.text("INCLUYE:", 20, yPos);
+      if (totals.portableCharger > 0 || totals.residentialCharger > 0 || extraChargers > 0)
+      {
+        doc.text("INCLUYE:", 20, yPos);
+      }
 
 	    yPos += 8;
 	    doc.setFontSize(10);
