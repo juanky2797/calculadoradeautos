@@ -517,7 +517,7 @@ export default function CarQuoteCalculator() {
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
 
-	    ensureSpace(45);
+	    ensureSpace(70);
 	    yPos += 3;
 	    doc.setDrawColor(secondary.r, secondary.g, secondary.b);
 	    doc.line(20, yPos, 190, yPos);
@@ -562,6 +562,7 @@ export default function CarQuoteCalculator() {
 	    doc.text(`70% antes del Embarque: ${formatCurrency(totals.balance70)}`, 25, yPos);
 
 		    if (sellerComments) {
+		      ensureSpace(30);
 		      yPos += 12;
 		      doc.setFontSize(12);
 		      doc.setFont("helvetica", "bold");
